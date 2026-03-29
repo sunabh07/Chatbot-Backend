@@ -4,6 +4,7 @@ from sqlmodel import SQLModel,Session,create_engine,select
 from fastapi import HTTPException,status
 from pydantic import EmailStr
 from app.models.user import User
+from app.models.document import Document
 import logging
 
 logging.basicConfig(level=logging.INFO)

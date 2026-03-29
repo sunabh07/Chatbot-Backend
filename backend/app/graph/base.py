@@ -10,3 +10,8 @@ llm=ChatGoogleGenerativeAI(
     api_key=os.getenv("GEMINI_API_KEY")
 )
 search_tool=TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+
+from google import genai
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+

@@ -3,7 +3,10 @@ from fastapi import HTTPException,File,UploadFile
 import tempfile
 import os
 from app.services.database import DatabaseService
-from langchain_docling.loader import DoclingLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from app.graph.base import client
+
 
 import logging
 
@@ -24,14 +27,25 @@ class DocumentService():
 
             with open(temp_path,"wb") as f:
                 f.write(file_bytes)
-            loader=DoclingLoader(file_path=temp_path)
+
+            
+            loader=UnstructuredPDFLoader(file_path=temp_path,mode="elements")
             docs=loader.load()
-            
+            logger.info(f"docs loaded {docs}")            
 
-            logger.info(f"docs loaded {docs}")
+            chunks=self.chunker(docs)
+
+            content = "\n".join(chunk.page_content for chunk in chunks)
+
+            logger.info(f"This is the total content of the docs:::::: {content}")
+
+            logger.info(f"chunks loaded {chunks[0].page_content}")
+
+            embeddings=await self.doc_embeddings(chunks)
 
 
-            
+
+            os.remove(temp_path)
         except Exception as e:
             raise HTTPException(
                 status_code=401,
@@ -39,4 +53,28 @@ class DocumentService():
             )
 
 
-        
+    async def doc_embeddings(self,chunks):
+
+        texts = [chunk.page_content for chunk in chunks if chunk.page_content.strip()]
+        logger.info("texts are created from chunks")
+        result = client.models.embed_content(
+        model="models/gemini-embedding-001",
+        contents=texts
+    )
+        logger.info("Embeddings created for texts")
+        embeddings = [e.values for e in result.embeddings]
+        logger.info(f"Embeddings are :::: {embeddings}")
+
+        print(len(result.embeddings[0].values))
+        return embeddings
+
+    def chunker(self,docs):
+
+        splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=100
+)
+
+        chunks = splitter.split_documents(docs)
+
+        return chunks
