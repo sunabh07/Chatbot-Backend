@@ -8,6 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.graph.base import client
 
 
+
 import logging
 
 
@@ -18,6 +19,7 @@ db_service=DatabaseService()
 class DocumentService():
 
     async def save_file_to_db(self,email:EmailStr,thread_id:str,file:UploadFile):
+        logger.info("Inside save_file_to_db function")
         try:
 
             filename=file.filename
@@ -42,10 +44,12 @@ class DocumentService():
             logger.info(f"chunks loaded {chunks[0].page_content}")
 
             embeddings=await self.doc_embeddings(chunks)
+            logger.info("Embeddings created")
 
-
-
+            save=await db_service.save_document(email,thread_id,chunks,embeddings,filename)
+            
             os.remove(temp_path)
+            return save
         except Exception as e:
             raise HTTPException(
                 status_code=401,

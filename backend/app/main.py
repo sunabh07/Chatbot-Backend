@@ -126,6 +126,10 @@ async def upload(file:UploadFile=File(...),email:EmailStr=Depends(verify_token))
     thread_id=await db_service.fetch_thread(email)
     try:
         x=await doc_service.save_file_to_db(email,thread_id,file)
+        if x["status"]:
+            return x
+        else:
+            return {"status":"Error in saving file"}
 
     except Exception as e:
         raise HTTPException(

@@ -12,7 +12,7 @@ class Document(SQLModel,table=True):
 
     id:Optional[int]=Field(default=None,primary_key=True) 
     filename:str=Field(description="FUll name")
-    thread_id:str=Field(default_factory=lambda:str(uuid.uuid4()),unique=True,index=True)
+    thread_id:str=Field(default_factory=lambda:str(uuid.uuid4()),index=True)
     content:str
     embedding: Optional[List[float]] = Field(default=None,sa_type=VECTOR(3072))
     meta: Optional[Dict] = Field(default=None,sa_column=Column(JSONB))

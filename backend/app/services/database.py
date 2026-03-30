@@ -57,3 +57,63 @@ class DatabaseService():
                 )
             return user.thread_id
     
+    async def save_document(self, email, thread_id, chunks, embeddings, filename):
+        try:
+            with Session(self.engine) as session:
+
+                if len(chunks) != len(embeddings):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Chunks and embeddings length mismatch"
+                    )
+
+                documents = []
+
+                for chunk, emb in zip(chunks, embeddings):
+
+                    if not chunk.page_content.strip():
+                        continue
+
+                    doc = Document(
+                        filename=filename,
+                        thread_id=thread_id,
+                        content=chunk.page_content,
+                        embedding=emb,
+                        meta={
+                            "page": chunk.metadata.get("page_number"),
+                            "source": chunk.metadata.get("source"),
+                            "type": chunk.metadata.get("category")
+                        }
+                    )
+
+                    documents.append(doc)
+
+                session.add_all(documents)
+                session.commit()
+                
+
+                return {
+                    "status": True,
+                    "inserted": len(documents)
+                }
+
+        except Exception as e:
+            logger.error(f"Error saving documents: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"DB Error: {e}"
+            )
+    def fetch_documents(self,query_embedding,thread_id):
+        with Session(self.engine) as session:
+            results = session.exec(
+
+                select(Document)
+                .where(Document.thread_id == thread_id)
+                .where(Document.embedding.cosine_distance(query_embedding) < 0.4)  # threshold
+                .order_by(Document.embedding.cosine_distance(query_embedding))
+                .limit(20)  # top K
+            ).all()
+
+            logger.info(f"retrieved docs for our vector search len(results)")
+
+            return results
