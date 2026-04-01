@@ -3,11 +3,11 @@ from fastapi import HTTPException,File,UploadFile
 import tempfile
 import os
 from app.services.database import DatabaseService
-from langchain_community.document_loaders import UnstructuredPDFLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader,UnstructuredWordDocumentLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.graph.base import client
 
-
+from pathlib import Path
 
 import logging
 
@@ -26,12 +26,19 @@ class DocumentService():
 
             temp_path=os.path.join(tempfile.gettempdir(),filename)
             file_bytes=await file.read()
+           
+
+            filename = file.filename
+            ext = Path(filename).suffix
+
 
             with open(temp_path,"wb") as f:
                 f.write(file_bytes)
 
-            
-            loader=UnstructuredPDFLoader(file_path=temp_path,mode="elements")
+            if ext == ".pdf":
+                loader=UnstructuredPDFLoader(file_path=temp_path,mode="elements")
+            if ext in [".doc",".docx"]:
+                loader=UnstructuredWordDocumentLoader(file_path=temp_path,mode="elements")
             docs=loader.load()
             logger.info(f"docs loaded {docs}")            
 

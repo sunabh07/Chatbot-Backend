@@ -3,9 +3,10 @@ from langchain.messages import AIMessage,HumanMessage
 from app.graph.schema import chat_schema
 from langgraph.graph import StateGraph,START,END
 from app.services.database import DatabaseService
-
+import json
 from google.genai import types
-
+from app.services.email_service import email_service
+import asyncio  
 import logging
 
 
@@ -13,7 +14,6 @@ logging.basicConfig(level=logging.INFO)
 logger=logging.getLogger(__name__)
 
 db_service=DatabaseService()
-
 def build_workflow(memory):
 
     def chat_node(state:chat_schema):
@@ -23,6 +23,7 @@ def build_workflow(memory):
         You are an intelligent AI assistant connected to:
 1. A vector database (RAG knowledge base)
 2. A web search tool
+3. A Email sender tool 
 
 Your job is to decide whether the user's query can be answered using the RAG knowledge base or requires web search.
 
@@ -35,6 +36,7 @@ Instructions:
 2. If the query is:
    - Related to stored documents, past conversations, internal knowledge, or specific domain data → USE RAG
    - General knowledge, recent events, unknown topics, or not clearly covered in the database → USE WEB SEARCH
+   - User asks to send email / share report / mail something → SEND_EMAIL
 
 3. If the query is unclear, vague, or you are not confident the RAG contains the answer → USE WEB SEARCH
 
@@ -43,6 +45,7 @@ Instructions:
 5. Output strictly ONE of the following:
    - "USE_RAG"
    - "NEED_WEB"
+   - "SEND_EMAIL"
 
 Do not output anything else.
 
@@ -59,6 +62,8 @@ Do not output anything else.
             return "web_search"
         if "USE_RAG" in last_message:
             return "document_search"
+        if "SEND_EMAIL" in last_message:
+            return "send_email"
         return END
 
     def web_search(state:chat_schema):
@@ -67,6 +72,51 @@ Do not output anything else.
         return {"messages":[AIMessage(content=response['results'])]}
 
 
+    def send_email(state:chat_schema):
+        last_message=state.messages[-2].content
+
+        prompt=f"""
+From the users last message, you have to extract the following things
+- email
+- subject
+- body
+
+User Query:
+{last_message}
+
+You have to return the output as mentioned below and in this format only 
+
+
+Return in JSON:
+{{
+    "email": "",
+    "subject": "",
+    "body": ""
+}}
+
+You MUST return ONLY valid JSON.
+Do NOT wrap in ```json or ``` blocks.
+Do NOT add any explanation.
+"""
+        response=llm.invoke(prompt)
+        logger.info(f"This the response we got {response.content}")
+        try:
+            data=json.loads(response.content)
+            logger.info(f"data recieved is {data}")
+        except:
+            return {"messages": [AIMessage(content="Could not extract email details")]}
+        
+        asyncio.create_task(
+        email_service.send_mail(
+            to_email=data["email"],
+            subject=data["subject"],
+            body=data["body"]
+        )
+    )
+
+        return {"messages": [AIMessage(content="Email sent successfully")]}
+        
+    
 
     def document_search(state:chat_schema):
         last_msg=state.messages[-2].content
@@ -110,6 +160,7 @@ If not found, say "I don't know"
     graph.add_node("chat_node",chat_node)
     graph.add_node("web_search",web_search)
     graph.add_node("document_search",document_search)
+    graph.add_node("send_email",send_email)
 
 
 
@@ -121,6 +172,7 @@ If not found, say "I don't know"
         {
             "web_search":"web_search",
             "document_search":"document_search",
+            "send_email":"send_email",
             END:END
         }
         )

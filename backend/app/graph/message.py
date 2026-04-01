@@ -12,7 +12,7 @@ def process_message(memory,thread_id,query):
     logger.info("Inside message workflow")
 
 
-    work=build_workflow(memory)
+    work = build_workflow(memory)
     if not query:
         return {
                 "error":"Empty message not allowed",
@@ -36,7 +36,7 @@ def process_message(memory,thread_id,query):
             "error":None
         }
     except Exception as e:
-        logger.error(f"Error occured during chat,{e}")
+        logger.error(f"Error occured during chat,{str(e)}")
         return {
             "error":str(e),
             "answer":None
