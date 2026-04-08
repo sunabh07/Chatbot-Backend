@@ -27,41 +27,6 @@ An AI-powered chatbot backend built using FastAPI, LangChain, and LangGraph with
 
 ---
 
-## Project Structure
-
-backend/
-└── app/
-├── main.py
-│
-├── graph/
-│ ├── base.py
-│ ├── message.py
-│ ├── schema.py
-│ ├── workflow.py
-│
-├── models/
-│ ├── document.py
-│ ├── user.py
-│
-├── services/
-│ ├── chat_workflow.py
-│ ├── database.py
-│ ├── document_loader.py
-│ ├── email_service.py
-│ ├── logger.py
-│ ├── verify_token.py
-│
-├── pycache/
-
-venv/
-.env
-.gitignore
-requirements.txt
-README.md
-
-
----
-
 ## API Endpoints
 
 ### Auth
@@ -106,12 +71,14 @@ Tavily API
 
 TAVILY_API_KEY=your_tavily_api_key
 
-
 Gmail
 
 EMAIL_PASS=Your_app_password
+
 EMAIL_HOST=smtp.gmail.com
+
 EMAIL_PORT = 587
+
 EMAIL_USER=your_email_id
 
 ---
@@ -121,13 +88,13 @@ EMAIL_USER=your_email_id
 ```bash
 git clone https://github.com/sunabh07/Chatbot-Backend
 cd chatbot-backend
-```
+
 python -m venv venv
 source venv/bin/activate      # Mac/Linux
 venv\Scripts\activate         # Windows
 
 pip install -r requirements.txt
-
+```
 ---
 
 ## Run The Server
