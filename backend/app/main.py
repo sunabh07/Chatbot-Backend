@@ -1,4 +1,5 @@
 from fastapi import FastAPI,HTTPException,File,UploadFile,status,Depends,Body
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials,HTTPBearer
 from pydantic import EmailStr
 from app.services.database import DatabaseService
@@ -18,8 +19,15 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger=logging.getLogger(__name__)
 
-
 app=FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://127.0.0.1:5500"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 db_service=DatabaseService()
